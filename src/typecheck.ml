@@ -40,14 +40,14 @@ let rec typecheck gamma e = match e with
 | Binop (op, a, b) -> let e1 = typecheck gamma a in let e2 = typecheck gamma b in (match op with
                       | Add | Sub | Mult |Div ->  if (e1, e2) = (TInt, TInt) then TInt else raise (TypeError "invalid add")
                       | Greater | Less | GreaterEqual | LessEqual -> if (e1, e2) = (TInt, TInt) then TBool else raise (TypeError "invalid comparison")
-                      | Equal | NotEqual -> if (e1 = e2) then TBool else raise (TypeError "invalid equality")
+                      | Equal | NotEqual -> if (is_subtype e1 e2) then TBool else raise (TypeError "invalid equality")
                       | Or | And -> if (e1, e2) = (TBool, TBool) then TBool else raise (TypeError "invalid boolean")
                       | _ -> raise (TypeError "invalid operator"))
-| If (tf, a, b) -> let tf = typecheck gamma tf in if (tf <> TBool) then raise (TypeError "invalid if condition") else 
-        let e1 = typecheck gamma a in let e2 = typecheck gamma b in if (e1 = e2) then e1 else raise (TypeError "if outcomes are not of type")
+| If (tf, a, b) -> let tf = typecheck gamma tf in if (not (is_subtype tf TBool)) then raise (TypeError "invalid if condition") else 
+        let e1 = typecheck gamma a in let e2 = typecheck gamma b in if (is_subtype e1 e2 || is_subtype e2 e1) then e1 else raise (TypeError "if outcomes are not of type")
 | Fun (x, t, e) -> let gamma = extend gamma x t in TArrow (t, typecheck gamma e)
 | App (a,b) -> let e2 = typecheck gamma b in let e1 = typecheck gamma a in 
-            (match e1 with TArrow(x,y) when x = e2 -> y | _ -> raise (TypeError "invalid app"))
+            (match e1 with TArrow(x,y) when is_subtype e2 x -> y | _ -> raise (TypeError "invalid app"))
 | Record lst -> let rec thrurec l = (match l with (a, b) :: t -> (a, typecheck gamma b) :: thrurec t | [] -> []) in TRec (thrurec lst)
 | Select (x, lst) -> let lst = typecheck gamma lst in (match lst with TRec l -> let rec thru ls = 
                 (match ls with (a,b) :: t -> if (a = x) then b else thru t | [] -> raise (TypeError "var not found in record")) in thru l
