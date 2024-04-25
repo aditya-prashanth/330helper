@@ -52,6 +52,6 @@ let rec typecheck gamma e = match e with
 | Select (x, lst) -> let lst = typecheck gamma lst in (match lst with TRec l -> let rec thru ls = 
                 (match ls with (a,b) :: t -> if (a = x) then b else thru t | [] -> raise (TypeError "var not found in record")) in thru l
                 | _ -> raise (TypeError "not a record"))
-| Not x -> let e = typecheck gamma x in if (e = TBool) then TBool else raise (TypeError "not a bool")
+| Not x -> let e = typecheck gamma x in if (is_subtype e TBool) then TBool else raise (TypeError "not a bool")
 | Let (f, e, t) -> let e = typecheck gamma e in let gamma = extend gamma f e in typecheck gamma t
-| LetRec (f, x , e, t) -> let gamma = extend gamma f x in let e = typecheck gamma e in if (x = e) then typecheck gamma t else raise (TypeError "not typed")
+| LetRec (f, x , e, t) -> let gamma = extend gamma f x in let e = typecheck gamma e in if (is_subtype e x) then typecheck gamma t else raise (TypeError "not typed")
